@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>모바일 지원 테트리스</title>
+<title>정확한 테트리스</title>
 <style>
 body {
   background: #111;
@@ -12,7 +12,7 @@ body {
   margin-top: 30px;
   font-family: Arial, sans-serif;
   transition: background 0.3s;
-  touch-action: none; /* 모바일 터치 처리 */
+  touch-action: none;
 }
 canvas {
   background: #000;
@@ -54,39 +54,19 @@ const musicBtn = document.getElementById("musicBtn");
 const rotateBtn = document.getElementById("rotateBtn");
 
 let musicOn = false;
-
-/* 🎵 음악 제어 */
 musicBtn.addEventListener("click", () => {
   if (!musicOn) {
-    bgm.play().then(() => {
-      musicOn = true;
-      musicBtn.textContent = "🔇 음악 끄기";
-    });
+    bgm.play().then(()=>{ musicOn=true; musicBtn.textContent="🔇 음악 끄기"; });
   } else {
-    bgm.pause();
-    musicOn = false;
-    musicBtn.textContent = "🎵 음악 재생";
+    bgm.pause(); musicOn=false; musicBtn.textContent="🎵 음악 재생";
   }
 });
 
-/* 🎨 색, 배경 효과 */
-const colors = [
-  null,
-  "#ff595e","#1982c4","#8ac926","#ffca3a",
-  "#6a4c93","#ff924c","#4d96ff","#00f5d4"
-];
-
-function randomBg() {
-  body.style.background = `hsl(${Math.random()*360},40%,15%)`;
-}
-
-function flash() {
-  body.classList.add("flash");
-  setTimeout(()=>body.classList.remove("flash"),300);
-}
+const colors=[null,"#ff595e","#1982c4","#8ac926","#ffca3a","#6a4c93","#ff924c","#4d96ff","#00f5d4"];
+function randomBg(){ body.style.background=`hsl(${Math.random()*360},40%,15%)`; }
+function flash(){ body.classList.add("flash"); setTimeout(()=>body.classList.remove("flash"),300); }
 
 function createMatrix(w,h){ return Array.from({length:h},()=>Array(w).fill(0)); }
-
 function createPiece(type){
   if(type==="T") return [[0,1,0],[1,1,1],[0,0,0]];
   if(type==="O") return [[2,2],[2,2]];
@@ -98,7 +78,7 @@ function createPiece(type){
   if(type==="U") return [[8,0,8],[8,8,8],[0,0,0]];
 }
 
-function drawMatrix(matrix, offset){
+function drawMatrix(matrix,offset){
   matrix.forEach((row,y)=>{
     row.forEach((value,x)=>{
       if(value){
@@ -109,12 +89,17 @@ function drawMatrix(matrix, offset){
   });
 }
 
-function collide(arena, player){
+/* 충돌 체크 수정: 좌우 벽 포함 */
+function collide(arena,player){
   for(let y=0;y<player.matrix.length;y++){
     for(let x=0;x<player.matrix[y].length;x++){
-      if(player.matrix[y][x]!==0 &&
-        (arena[y+player.pos.y] && arena[y+player.pos.y][x+player.pos.x])!==0)
-        return true;
+      if(player.matrix[y][x]!==0){
+        let newX = x+player.pos.x;
+        let newY = y+player.pos.y;
+        if(newY >= arena.length || newX < 0 || newX >= arena[0].length || arena[newY][newX] !== 0){
+          return true;
+        }
+      }
     }
   }
   return false;
@@ -131,7 +116,7 @@ function merge(arena,player){
 function rotate(matrix){
   for(let y=0;y<matrix.length;y++){
     for(let x=0;x<y;x++){
-      [matrix[x][y],matrix[y][x]] = [matrix[y][x],matrix[x][y]];
+      [matrix[x][y],matrix[y][x]]=[matrix[y][x],matrix[x][y]];
     }
   }
   matrix.forEach(row=>row.reverse());
@@ -151,9 +136,7 @@ function sweep(){
     score += lines*100;
     level = Math.floor(score/500)+1;
     dropInterval = Math.max(150,800-level*70);
-    randomBg();
-    flash();
-    updateUI();
+    randomBg(); flash(); updateUI();
   }
 }
 
@@ -173,36 +156,30 @@ function playerMove(dir){
   if(collide(arena,player)) player.pos.x-=dir;
 }
 
-function playerRotate(){ rotate(player.matrix); if(collide(arena,player)) rotate(player.matrix); }
+function playerRotate(){ rotate(player.matrix); if(collide(arena,player)) rotate(player.matrix); rotate(player.matrix); rotate(player.matrix); }
 
 function resetPlayer(){
   const pieces="ILJOTSZU";
-  player.matrix = createPiece(pieces[Math.random()*pieces.length|0]);
+  player.matrix=createPiece(pieces[Math.floor(Math.random()*pieces.length)]);
   player.pos.y=0;
-  player.pos.x = (arena[0].length/2|0)-(player.matrix[0].length/2|0);
+  player.pos.x=(arena[0].length/2|0)-(player.matrix[0].length/2|0);
   if(collide(arena,player)){
     arena.forEach(row=>row.fill(0));
     score=0; level=1; dropInterval=800; updateUI();
   }
 }
 
-function updateUI(){
-  scoreEl.textContent=score;
-  levelEl.textContent=level;
-}
+function updateUI(){ scoreEl.textContent=score; levelEl.textContent=level; }
 
-let score=0, level=1;
-let dropCounter=0, dropInterval=800, lastTime=0;
-const arena = createMatrix(12,20);
+let score=0, level=1, dropCounter=0, dropInterval=800, lastTime=0;
+const arena=createMatrix(12,20);
 const player={pos:{x:0,y:0},matrix:null};
 
 function update(time=0){
-  const delta=time-lastTime;
-  lastTime=time;
+  const delta=time-lastTime; lastTime=time;
   dropCounter+=delta;
   if(dropCounter>dropInterval) playerDrop();
-  ctx.fillStyle="#000";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#000"; ctx.fillRect(0,0,canvas.width,canvas.height);
   drawMatrix(arena,{x:0,y:0});
   drawMatrix(player.matrix,player.pos);
   requestAnimationFrame(update);
@@ -216,24 +193,18 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowUp") playerRotate();
 });
 
-/* 모바일 터치 지원 */
-let startX = 0;
-canvas.addEventListener("touchstart", e => {
-  startX = e.touches[0].clientX;
+/* 모바일 터치 */
+let startX=0;
+canvas.addEventListener("touchstart",e=>{ startX=e.touches[0].clientX; });
+canvas.addEventListener("touchmove",e=>{
+  const dx=e.touches[0].clientX-startX;
+  if(dx>30){ playerMove(1); startX=e.touches[0].clientX; }
+  if(dx<-30){ playerMove(-1); startX=e.touches[0].clientX; }
 });
-canvas.addEventListener("touchmove", e => {
-  const dx = e.touches[0].clientX - startX;
-  if(dx > 30){ playerMove(1); startX = e.touches[0].clientX; }
-  if(dx < -30){ playerMove(-1); startX = e.touches[0].clientX; }
-});
-canvas.addEventListener("touchend", e => { playerDrop(); }); // 터치 끝나면 블록 내려가기
+canvas.addEventListener("touchend",e=>{ playerDrop(); });
+rotateBtn.addEventListener("click",()=>{ playerRotate(); });
 
-/* 모바일 회전 버튼 */
-rotateBtn.addEventListener("click", ()=>{ playerRotate(); });
-
-resetPlayer();
-updateUI();
-update();
+resetPlayer(); updateUI(); update();
 </script>
 </body>
 </html>
